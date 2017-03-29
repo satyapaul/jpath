@@ -1,4 +1,4 @@
-package com.stockpeeker.util;
+package com.satyajitpaul.jpath;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -237,27 +237,23 @@ public class JSONDataReader {
 	 * @throws JSONException 
 	 */
 	public static JSONObject getFileContent(String sourceLocation) throws JSONException {
-        StringBuilder strbldr = new StringBuilder();
-        FileReader fr ;
+        	StringBuilder strbldr = new StringBuilder();
+        	FileReader fr ;
 		try {
 			fr = new FileReader(sourceLocation);
 	        BufferedReader br = new BufferedReader(fr); 
 	        String s; 
 	        while((s = br.readLine()) != null) { 
-	        	//System.out.println("s >> " + s);
 	        	strbldr.append(s);
 	        	strbldr.append("\n"); 
 	        } 
 	        fr.close();
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} 
-        //System.out.println("strbldr >> "+ strbldr.toString());
-        return new JSONObject(strbldr.toString().trim());
+        	return new JSONObject(strbldr.toString().trim());
 	}	
 	
 	/**
