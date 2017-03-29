@@ -4,26 +4,26 @@ xpath for JSON
 # Explanation
 Each level in json is separated by "/". Here is how different types need to be represented
 
-JSONObject : <name>[Object] or <name>[6] e.g. quoteSummary[Object]
+JSONObject : {name}[Object] or {name}[6] e.g. quoteSummary[Object]
 
 JSONArray  : 
 
-usage type-1 : <name>[Array] or <name>[4] e.g. result[Array]
+usage type-1 : {name}[Array] or {name}[4] e.g. result[Array]
 
-usage type-2 : <name>[Array][0] or <name>[4][1] e.g. data[Array][1]
+usage type-2 : {name}[Array][0] or {name}[4][1] e.g. data[Array][1]
 
-usage type-3 : <name>[Array][<name>=<value>] or <name>[4][<name>=<value>] e.g. data[Array][id=131272076894593_1420960724592382]
+usage type-3 : {name}[Array][{name}={value}] or {name}[4][{name}={value}] e.g. data[Array][id=131272076894593_1420960724592382]
 
 
-String     : <name>[String] or <name>[2] e.g. fmt[String]
+String     : {name}[String] or {name}[2] e.g. fmt[String]
 
-Integer    : <name>[Integer] or <name>[1] e.g. raw[Integer]
+Integer    : {name}[Integer] or {name}[1] e.g. raw[Integer]
 
-Boolean    : <name>[Boolean] or <name>[3]
+Boolean    : {name}[Boolean] or {name}[3]
 
-Double     : <name>[Double] or <name>[9] e.g. raw[Double]
+Double     : {name}[Double] or {name}[9] e.g. raw[Double]
 
-Long       : <name>[Long] or <name>[0]
+Long       : {name}[Long] or {name}[0]
 
 
 # Example-1 
