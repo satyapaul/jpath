@@ -21,7 +21,8 @@ import com.sun.jersey.api.json.JSONConfiguration;
  * This program is a very simple implementation to emulate xpath APIs
  * for JSON Data in Java.
  * 
- * @author satyajitpaul
+ * @author satyajitpaul 
+ * @contact Twitter: @satya_paul
  * @version 1.0
  * @since   2017-03-29 
  */
