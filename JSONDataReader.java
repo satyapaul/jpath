@@ -1,4 +1,4 @@
-package com.satyajitpaul.jpath;
+package com.stockpeeker.util;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -62,6 +62,7 @@ public class JSONDataReader {
 	 * @throws JSONException
 	 */
 	public static String getStringValue(String path, JSONObject jsonData) throws JSONException {
+		path = path.startsWith("/") ? path.substring(1, path.length()) : path;
 		String parts[] = path.split("/");
 		Object value = getJSONValue( parts, jsonData);
 		return (String)value;
@@ -75,6 +76,7 @@ public class JSONDataReader {
 	 * @throws JSONException
 	 */
 	public static Double getDoubleValue(String path, JSONObject jsonData) throws JSONException {
+		path = path.startsWith("/") ? path.substring(1, path.length()) : path;
 		String parts[] = path.split("/");
 		Object value = getJSONValue( parts, jsonData);
 		return (Double)value;
@@ -88,6 +90,7 @@ public class JSONDataReader {
 	 * @throws JSONException
 	 */	
 	public static Integer getIntegerValue(String path, JSONObject jsonData) throws JSONException {
+		path = path.startsWith("/") ? path.substring(1, path.length()) : path;
 		String parts[] = path.split("/");
 		Object value = getJSONValue( parts, jsonData);
 		return (Integer)value;
@@ -101,6 +104,7 @@ public class JSONDataReader {
 	 * @throws JSONException
 	 */	
 	public static JSONObject getJSONObjectValue(String path, JSONObject jsonData) throws JSONException {
+		path = path.startsWith("/") ? path.substring(1, path.length()) : path;		
 		String parts[] = path.split("/");
 		Object value = getJSONValue( parts, jsonData);
 		return (JSONObject)value;
@@ -114,6 +118,7 @@ public class JSONDataReader {
 	 * @throws JSONException
 	 */		
 	public static JSONArray getJSONArrayValue(String path, JSONObject jsonData) throws JSONException {
+		path = path.startsWith("/") ? path.substring(1, path.length()) : path;		
 		String parts[] = path.split("/");
 		Object value = getJSONValue( parts, jsonData);
 		return (JSONArray)value;
@@ -135,8 +140,8 @@ public class JSONDataReader {
 			JSONObject jsonDataObj = (JSONObject)jsonData;
 			jsonData = jsonDataObj.getJSONObject(pathValue);
 		} else if( "Array".equalsIgnoreCase(dataType) || "4".equals(dataType)) {
-			int dataLocInArr = getArrayLocation( parts[0] );
 			JSONObject jsonDataObj = (JSONObject)jsonData;
+			int dataLocInArr = getArrayLocation( parts[0], pathValue, jsonDataObj );
 			if ( dataLocInArr > -1) {
 				jsonData = jsonDataObj.getJSONArray(pathValue).get(dataLocInArr);
 			}
@@ -177,11 +182,24 @@ public class JSONDataReader {
 		return dataType;
 	}
 	
-	private static int getArrayLocation(String pathlet) {
-		String loc = pathlet.substring(pathlet.lastIndexOf("[") + 1 , pathlet.lastIndexOf("]"));
+	private static int getArrayLocation(String pathlet, String pathValue, JSONObject jsonDataObj) throws JSONException {
 		int location = -1 ;
+		String loc = pathlet.substring(pathlet.lastIndexOf("[") + 1 , pathlet.lastIndexOf("]"));
+		if( loc.indexOf("=") != -1 ) {
+			String name = loc.split("=")[0];
+			String value = loc.split("=")[1];
+			JSONArray arr = jsonDataObj.getJSONArray(pathValue);
+			for(int i = 0 ; i < arr.length(); i++) {
+				String val = arr.getJSONObject(i).getString(name);
+				if ( value.equals( val ) ) {
+					return i;
+				}
+			}
+			return location;
+		}
+		
 		try {
-		 location = Integer.parseInt(loc);
+			location = Integer.parseInt(loc);
 		} catch(java.lang.NumberFormatException nfe) {
 			//eat it
 		}
@@ -210,6 +228,7 @@ public class JSONDataReader {
         String output = response.getEntity(String.class);
         return new JSONObject(output);
 	}
+	
 	
 	/**
 	 * Method will be used to read the json data from local file system
@@ -242,26 +261,26 @@ public class JSONDataReader {
 	}	
 	
 	/**
-	 * main method has few examples of how you can invoke the APIs 
+	 * main method has few examples of how you can invoke the methods 
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		//String sourceLocation = "/Users/xxxxxxx/Documents/yahoo/stock-quotes/ABB.NS.json";
-		//JSONObject jsonData = getFileContent(sourceLocation);
-		
+		runTests1();
+		runTests2();
+	}
+	
+	private static void runTests1() {
+		String sourceLocation = "/Users/xxxxx/Documents/workspace/yyyy/20170325/yahoo/stock-quotes/ABB.NS.json";
 		String jsonDataUrl = "https://query2.finance.yahoo.com/v10/finance/quoteSummary/ABB.NS?modules=assetProfile,financialData,defaultKeyStatistics,incomeStatementHistory,cashflowStatementHistory,balanceSheetHistory";
-		
-		
 		try {
-			JSONObject jsonData = getContentFromHttpUri(jsonDataUrl);
-			
-
-			String jPath = "quoteSummary[Object]/result[Array][0]/defaultKeyStatistics[Object]/enterpriseValue[Object]/fmt[String]";
+			JSONObject jsonData = getFileContent(sourceLocation);
+			//JSONObject jsonData = getContentFromHttpUri(jsonDataUrl);
+			String jPath = "/quoteSummary[Object]/result[Array][0]/defaultKeyStatistics[Object]/enterpriseValue[Object]/fmt[String]";
 			String value = getStringValue(jPath, jsonData);
 			System.out.println("jPath = " + jPath);
 			System.out.println("value = " + value);
 			
-			jPath = "quoteSummary[Object]/result[Array][0]/defaultKeyStatistics[Object]/forwardPE[Object]/raw[Double]";
+			jPath = "/quoteSummary[Object]/result[Array][0]/defaultKeyStatistics[Object]/forwardPE[Object]/raw[Double]";
 			Double dValue = getDoubleValue(jPath, jsonData);
 			System.out.println("jPath = " + jPath);
 			System.out.println("value = " + dValue.doubleValue());
@@ -280,15 +299,60 @@ public class JSONDataReader {
 			jPath = "quoteSummary[6]/result[Array][0]";
 			JSONObject jsonValue = getJSONObjectValue(jPath, jsonData);
 			System.out.println("jPath = " + jPath);
-			System.out.println("value = " + jsonValue);
+			System.out.println("value = " + jsonValue.toString(4));
 			
 			jPath = "quoteSummary[6]/result[Array]";
 			JSONArray jsonArrValue = getJSONArrayValue(jPath, jsonData);
 			System.out.println("jPath = " + jPath);
-			System.out.println("value = " + jsonArrValue);
+			System.out.println("value = " + jsonArrValue.toString(4));
 			
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}
-	}		
+
+	}
+
+	private static void runTests2() {
+		String jsonDataUrl = "http://www.fanffair.com/json?fetchsize=10&before=1490799314000&type=HOME_PAGE&noCache=1490801422724";
+		try {
+			JSONObject jsonData = getContentFromHttpUri(jsonDataUrl);
+			String jPath = "/fbids[String]";
+			String value = getStringValue(jPath, jsonData);
+			System.out.println("jPath = " + jPath);
+			System.out.println("value = " + value);
+			
+			jPath = "/data[Array][1]/id[String]";
+			value = getStringValue(jPath, jsonData);
+			System.out.println("jPath = " + jPath);
+			System.out.println("value = " + value);
+			
+			jPath = "/data[Array][1]/likes[Object]/summary[Object]/total_count[String]";
+			value = getStringValue(jPath, jsonData);
+			System.out.println("jPath = " + jPath);
+			System.out.println("value = " + value);
+			
+			jPath = "/data[Array][1]/likes[Object]";
+			JSONObject jsonValue = getJSONObjectValue(jPath, jsonData);
+			System.out.println("jPath = " + jPath);
+			System.out.println("value = " + jsonValue.toString(4));
+			
+			jPath = "/data[Array][id=131272076894593_1420960724592382]/likes[Object]/summary[Object]/total_count[String]";
+			value = getStringValue(jPath, jsonData);
+			System.out.println("jPath = " + jPath);
+			System.out.println("value = " + value);
+			
+			jPath = "/data[Array]";
+			JSONArray jArrValue = getJSONArrayValue(jPath, jsonData);
+			System.out.println("jPath = " + jPath);
+			System.out.println("value = " + jArrValue.toString(4));
+			
+			jPath = "/data[Array][3]";
+			JSONObject jObjValue = getJSONObjectValue(jPath, jsonData);
+			System.out.println("jPath = " + jPath);
+			System.out.println("value = " + jObjValue.toString(4));
+			
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+	}
 }
