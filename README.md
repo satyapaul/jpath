@@ -1,6 +1,15 @@
 # jpath
 It's a quick solution to read JSON Data. It works in a similar manner xpath works for xml data. Take a look at this single class library called 'jpath' that emulates xpath for JSON data.  written in java
 
+# Third Party Library Dependencies 
+
+You need following jars in your classpath in order to execute the code.
+
+jettison-1.3.7.jar
+jersey-client-1.91.1.jar
+jersey-json-1.91.1.jar
+
+
 # Explanation
 Each level in json is separated by "/". Here is how different types need to be represented
 
