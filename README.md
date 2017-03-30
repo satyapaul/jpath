@@ -59,3 +59,6 @@ http://www.fanffair.com/json?fetchsize=10&before=1490799314000&type=HOME_PAGE
 
 /data[Array][id=131272076894593_1420960724592382]/likes[Object]/summary[Object]/total_count[String]
 
+# Output of the above Test cases
+
+https://github.com/satyapaul/jpath/blob/master/output.txt
