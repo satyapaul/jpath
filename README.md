@@ -6,7 +6,9 @@ It's a quick solution to read JSON Data. It works in a similar manner xpath work
 You need following jars in your classpath in order to execute the code.
 
 jettison-1.3.7.jar
+
 jersey-client-1.91.1.jar
+
 jersey-json-1.91.1.jar
 
 
