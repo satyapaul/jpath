@@ -1,5 +1,7 @@
 # jpath
+
 It's a quick solution to read JSON Data. It works in a similar manner xpath works for xml data. Take a look at this single class library called 'jpath' that emulates xpath for JSON data.  written in java
+
 
 # Third Party Library Dependencies 
 
@@ -12,10 +14,14 @@ jersey-client-1.91.1.jar
 jersey-json-1.91.1.jar
 
 
-# Explanation
+# How It Works
+
 Each level in json is separated by "/". Here is how different types need to be represented
 
-JSONObject : {name}[Object] or {name}[6] e.g. quoteSummary[Object]
+JSONObject : 
+
+{name}[Object] or {name}[6] e.g. quoteSummary[Object]
+
 
 JSONArray  : 
 
@@ -23,18 +29,33 @@ usage type-1 : {name}[Array] or {name}[4] e.g. result[Array]
 
 usage type-2 : {name}[Array][0] or {name}[4][1] e.g. data[Array][1]
 
-usage type-3 : {name}[Array][{name}={value}] or {name}[4][{name}={value}] e.g. data[Array][id=131272076894593_1420960724592382]
+usage type-3 : 
+
+The value is expected to be unique. If the value has duplicate values, it picks up the one that comes first.
+
+{name}[Array][{name}={value}] or {name}[4][{name}={value}] e.g. data[Array][id=131272076894593_1420960724592382]
 
 
-String     : {name}[String] or {name}[2] e.g. fmt[String]
+String     : 
 
-Integer    : {name}[Integer] or {name}[1] e.g. raw[Integer]
+{name}[String] or {name}[2] e.g. fmt[String]
 
-Boolean    : {name}[Boolean] or {name}[3]
 
-Double     : {name}[Double] or {name}[9] e.g. raw[Double]
+Integer    : 
 
-Long       : {name}[Long] or {name}[0]
+{name}[Integer] or {name}[1] e.g. raw[Integer]
+
+Boolean    : 
+
+{name}[Boolean] or {name}[3]
+
+Double     : 
+
+{name}[Double] or {name}[9] e.g. raw[Double]
+
+Long       : 
+
+{name}[Long] or {name}[0]
 
 
 # Example-1 
