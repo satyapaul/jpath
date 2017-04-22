@@ -12,6 +12,7 @@ import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
+import com.google.gson.stream.JsonReader;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
@@ -24,10 +25,14 @@ import com.sun.jersey.api.json.JSONConfiguration;
  * for JSON Data in Java.
  * 
  * @author satyajitpaul
- * @contact Twitter: @satya_paul
- * @version 1.1
+ * @version 1.2
  * @since   2017-03-29
- * @modified 2017-03-29 
+ * @modified 2017-03-29
+ * 
+ * v1.2: In this release all static method are changed to non-static. This has
+ * primarily been done to accommodate the new variable SUPPRESS_JSON_EXCEPTION.
+ * This variable must be an instance level variable and cannot be made static 
+ * as it will influence all the runtime instances. 
  */
 
 /**
@@ -57,6 +62,42 @@ import com.sun.jersey.api.json.JSONConfiguration;
 
 public class JSONDataReader {
 
+	/*
+	 * The variable is introduced to deal with two different 
+	 * situations - 
+	 * 
+	 * design time : when a user is exploring the jpath
+	 * for a particular JSON Content. During that time the 
+	 * jpath may be wrong and may throw legitimate Exception
+	 * when data is missing due to wrong path.
+	 * 
+	 * run time: Usually a user will use a jpath that has been 
+	 * validated. In that case, an exception may be thrown as 
+	 * data may be missing even when path is correct. In such 
+	 * situations, one may like to supress the exceptions. You
+	 * may set the value of SUPPRESS_JSON_EXCEPTION to true to 
+	 * achieve this.
+	 *      
+	 */
+	public boolean SUPPRESS_JSON_EXCEPTION = false;
+	
+	private static final String LONG_TYPE = "0";
+	private static final String INTEGER_TYPE = "1";
+	private static final String STRING_TYPE = "2";
+	private static final String BOOLEAN_TYPE = "3";
+	private static final String JSON_ARRAY_TYPE = "4";
+	private static final String JSON_OBJECT_TYPE = "6";
+	private static final String DOUBLE_TYPE = "9";
+	
+	/**
+	 * NOT a singleton class, this is just a helper method.
+	 * Users are free to instantiate the class directly and
+	 * use it. 
+	 * @return
+	 */
+	public static JSONDataReader getInstance() {
+		return new JSONDataReader();
+	}
 
 	/**
 	 * This method is for reading the leaf level value of DataType 'String'
@@ -65,7 +106,7 @@ public class JSONDataReader {
 	 * @return
 	 * @throws JSONException
 	 */
-	public static String getStringValue(String path, JSONObject jsonData) throws JSONException {
+	public String getStringValue(String path, JSONObject jsonData) throws JSONException {
 		path = path.startsWith("/") ? path.substring(1, path.length()) : path;
 		String parts[] = path.split("/");
 		Object value = getJSONValue( parts, jsonData);
@@ -79,7 +120,7 @@ public class JSONDataReader {
 	 * @return
 	 * @throws JSONException
 	 */
-	public static Double getDoubleValue(String path, JSONObject jsonData) throws JSONException {
+	public Double getDoubleValue(String path, JSONObject jsonData) throws JSONException {
 		path = path.startsWith("/") ? path.substring(1, path.length()) : path;
 		String parts[] = path.split("/");
 		Object value = getJSONValue( parts, jsonData);
@@ -93,7 +134,7 @@ public class JSONDataReader {
 	 * @return
 	 * @throws JSONException
 	 */	
-	public static Integer getIntegerValue(String path, JSONObject jsonData) throws JSONException {
+	public Integer getIntegerValue(String path, JSONObject jsonData) throws JSONException {
 		path = path.startsWith("/") ? path.substring(1, path.length()) : path;
 		String parts[] = path.split("/");
 		Object value = getJSONValue( parts, jsonData);
@@ -107,12 +148,22 @@ public class JSONDataReader {
 	 * @return
 	 * @throws JSONException
 	 */	
-	public static Long getLongValue(String path, JSONObject jsonData) throws JSONException {
+	public Long getLongValue(String path, JSONObject jsonData) throws JSONException {
 		path = path.startsWith("/") ? path.substring(1, path.length()) : path;
 		String parts[] = path.split("/");
-		Object value = getJSONValue( parts, jsonData);
-		return (Long)value;
+		Object value = null;
+		if( SUPPRESS_JSON_EXCEPTION ) { 
+			try {
+				value = getJSONValue( parts, jsonData);
+			} catch(JSONException jsone) {
+				System.err.println("User has used a wrong jpath or a non existing jpath.");
+			}
+		} else {
+			value = getJSONValue( parts, jsonData);
+		}
+		return value != null ? (Long)value : null;
 	}
+	
 	
 	/**
 	 * This method is for reading the non-leaf level a child JSONObject data 
@@ -121,12 +172,13 @@ public class JSONDataReader {
 	 * @return
 	 * @throws JSONException
 	 */	
-	public static JSONObject getJSONObjectValue(String path, JSONObject jsonData) throws JSONException {
+	public JSONObject getJSONObjectValue(String path, JSONObject jsonData) throws JSONException {
 		path = path.startsWith("/") ? path.substring(1, path.length()) : path;		
 		String parts[] = path.split("/");
 		Object value = getJSONValue( parts, jsonData);
 		return (JSONObject)value;
 	}
+	
 	
 	/**
 	 * This method is for reading the non-leaf level a child JSONArray data 
@@ -135,12 +187,13 @@ public class JSONDataReader {
 	 * @return
 	 * @throws JSONException
 	 */		
-	public static JSONArray getJSONArrayValue(String path, JSONObject jsonData) throws JSONException {
+	public JSONArray getJSONArrayValue(String path, JSONObject jsonData) throws JSONException {
 		path = path.startsWith("/") ? path.substring(1, path.length()) : path;		
 		String parts[] = path.split("/");
 		Object value = getJSONValue( parts, jsonData);
 		return (JSONArray)value;
 	}
+	
 	
 	/**
 	 * This recursive method is core method that traverses the JSON Data for return the requested jpath data. 
@@ -150,13 +203,13 @@ public class JSONDataReader {
 	 * @return
 	 * @throws JSONException
 	 */
-	private static Object getJSONValue(String parts[], Object jsonData) throws JSONException {
+	private Object getJSONValue(String parts[], Object jsonData) throws JSONException {
 		String pathValue = getPathValue(parts[0]);
 		String dataType = getDataType( parts[0] );
-		if( "Object".equalsIgnoreCase(dataType) || "6".equals(dataType)) {
+		if( "Object".equalsIgnoreCase(dataType) || JSON_OBJECT_TYPE.equals(dataType)) {
 			JSONObject jsonDataObj = (JSONObject)jsonData;
 			jsonData = jsonDataObj.getJSONObject(pathValue);
-		} else if( "Array".equalsIgnoreCase(dataType) || "4".equals(dataType)) {
+		} else if( "Array".equalsIgnoreCase(dataType) || JSON_ARRAY_TYPE.equals(dataType)) {
 			JSONObject jsonDataObj = (JSONObject)jsonData;
 			int dataLocInArr = getArrayLocation( parts[0], pathValue, jsonDataObj );
 			if ( dataLocInArr > -1) {
@@ -165,19 +218,19 @@ public class JSONDataReader {
 			else {
 				jsonData = jsonDataObj.getJSONArray(pathValue);
 			}
-		} else if( "String".equalsIgnoreCase(dataType) || "2".equals(dataType)) {
+		} else if( "String".equalsIgnoreCase(dataType) || STRING_TYPE.equals(dataType)) {
 			JSONObject jsonDataObj = (JSONObject)jsonData;
 			return jsonDataObj.getString(pathValue);
-		} else if( "Integer".equalsIgnoreCase(dataType) || "1".equals(dataType)) {
+		} else if( "Integer".equalsIgnoreCase(dataType) || INTEGER_TYPE.equals(dataType)) {
 			JSONObject jsonDataObj = (JSONObject)jsonData;
 			return jsonDataObj.getInt(pathValue);
-		} else if( "Double".equalsIgnoreCase(dataType) || "9".equals(dataType)) {
+		} else if( "Double".equalsIgnoreCase(dataType) || DOUBLE_TYPE.equals(dataType)) {
 			JSONObject jsonDataObj = (JSONObject)jsonData;
 			return jsonDataObj.getDouble(pathValue);
-		} else if( "Boolean".equalsIgnoreCase(dataType) || "3".equals(dataType)) {
+		} else if( "Boolean".equalsIgnoreCase(dataType) || BOOLEAN_TYPE.equals(dataType)) {
 			JSONObject jsonDataObj = (JSONObject)jsonData;
 			return jsonDataObj.getBoolean(pathValue);
-		} else if( "Long".equalsIgnoreCase(dataType) || "0".equals(dataType)) {
+		} else if( "Long".equalsIgnoreCase(dataType) || LONG_TYPE.equals(dataType)) {
 			JSONObject jsonDataObj = (JSONObject)jsonData;
 			return jsonDataObj.getLong(pathValue);
 		}
@@ -189,17 +242,17 @@ public class JSONDataReader {
 		}
 	}
 	
-	private static String getPathValue(String pathlet) {
+	private String getPathValue(String pathlet) {
 		String pathValue = pathlet.indexOf("[") != -1 ? pathlet.substring(0, pathlet.indexOf("[")) : pathlet;
 		return pathValue;
 	}
 	
-	private static String getDataType(String pathlet) {
+	private String getDataType(String pathlet) {
 		String dataType = pathlet.indexOf("[") != -1 ?  pathlet.substring(pathlet.indexOf("[") + 1 , pathlet.indexOf("]")) : "String" ;
 		return dataType;
 	}
 	
-	private static int getArrayLocation(String pathlet, String pathValue, JSONObject jsonDataObj) throws JSONException {
+	private int getArrayLocation(String pathlet, String pathValue, JSONObject jsonDataObj) throws JSONException {
 		int location = -1 ;
 		String loc = pathlet.substring(pathlet.lastIndexOf("[") + 1 , pathlet.lastIndexOf("]"));
 		if( loc.indexOf("=") != -1 ) {
@@ -214,6 +267,7 @@ public class JSONDataReader {
 			}
 			return location;
 		}
+		
 		try {
 			location = Integer.parseInt(loc);
 		} catch(java.lang.NumberFormatException nfe) {
@@ -222,12 +276,11 @@ public class JSONDataReader {
 		return location;
 	}
 
-    
 	/**
 	 * Method will be used to read the json data from a http url
 	 * @param restUri provide the url for the json data source
 	 */
-	public static JSONObject getContentFromHttpUri(String restUri) throws JSONException {
+	public JSONObject getContentFromHttpUri(String restUri) throws JSONException {
         ClientConfig clientConfig = new DefaultClientConfig();
         clientConfig.getFeatures().put(
                         JSONConfiguration.FEATURE_POJO_MAPPING, Boolean.TRUE);
@@ -252,7 +305,7 @@ public class JSONDataReader {
 	 * @return
 	 * @throws JSONException 
 	 */
-	public static JSONObject getFileContent(String sourceLocation) throws JSONException {
+	public JSONObject getFileContent(String sourceLocation) throws JSONException {
         StringBuilder strbldr = new StringBuilder();
         FileReader fr ;
 		try {
@@ -265,8 +318,10 @@ public class JSONDataReader {
 	        } 
 	        fr.close();
 		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} 
         return new JSONObject(strbldr.toString().trim());
@@ -278,53 +333,60 @@ public class JSONDataReader {
 	 * @param args
 	 */
 	public static void main(String[] args) {
+		JSONDataReader reader = JSONDataReader.getInstance();
 		runTests1();
-		runTests2();
+		reader.runTests2();
 	}
 	
 	private static void runTests1() {
-		String sourceLocation = "/Users/xxxxx/Documents/workspace/yyyyy/20170325/yahoo/stock-quotes/ABB.NS.json";
+		JSONDataReader jReader = JSONDataReader.getInstance();
+		String sourceLocation = "/Users/satyajitpaul/Documents/workspace/StockPeeker/20170325/yahoo/stock-quotes/ABB.NS.json";
 		String jsonDataUrl = "https://query2.finance.yahoo.com/v10/finance/quoteSummary/ABB.NS?modules=assetProfile,financialData,defaultKeyStatistics,incomeStatementHistory,cashflowStatementHistory,balanceSheetHistory";
 		try {
-			JSONObject jsonData = getFileContent(sourceLocation);
+			JSONObject jsonData = jReader.getFileContent(sourceLocation);
+			//JSONObject jsonData = getContentFromHttpUri(jsonDataUrl);
+			
 			String jPath = "/quoteSummary[Object]/result[Array][0]/defaultKeyStatistics[Object]/enterpriseValue[Object]/fmt[String]";
-			String value = getStringValue(jPath, jsonData);
+			String value = jReader.getStringValue(jPath, jsonData);
 			System.out.println("jPath = " + jPath);
 			System.out.println("value = " + value);
 			
 			jPath = "/quoteSummary[Object]/result[Array][0]/defaultKeyStatistics[Object]/forwardPE[Object]/raw[Double]";
-			Double dValue = getDoubleValue(jPath, jsonData);
+			Double dValue = jReader.getDoubleValue(jPath, jsonData);
 			System.out.println("jPath = " + jPath);
 			System.out.println("value = " + dValue.doubleValue());
 			
 			jPath = "quoteSummary[Object]/result[Array][0]/defaultKeyStatistics[Object]/sharesOutstanding[Object]/raw[Integer]";
-			Integer intValue = getIntegerValue(jPath, jsonData);
+			Integer intValue = jReader.getIntegerValue(jPath, jsonData);
 			System.out.println("jPath = " + jPath);
 			System.out.println("value = " + intValue.intValue());
 			
 			
 			jPath = "quoteSummary[6]/result[4][0]/defaultKeyStatistics[6]/sharesOutstanding[6]/raw[1]";
 			System.out.println("jPath = " + jPath);
-			intValue = getIntegerValue(jPath, jsonData);
+			intValue = jReader.getIntegerValue(jPath, jsonData);
 			System.out.println("value = " + intValue.intValue());
 			
-			jPath = "quoteSummary[Object]/result[Array][0]/defaultKeyStatistics[Object]/lastSplitDate[Object]/raw[Long]";
+			jPath = "quoteSummary[Object]/result[Array][0]/defaultKeyStatistics[Object]/lastSplitDate[Object]/raw1[Long]";
 			System.out.println("jPath = " + jPath);
-			long splitDateLong = JSONDataReader.getLongValue(jPath, jsonData);
-			Date splitDate = new Date(splitDateLong);
-			SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
-			String _splitDate = formatter.format(splitDate);
-			System.out.println("value = " + _splitDate);
+			jReader.SUPPRESS_JSON_EXCEPTION = true;
+			Long splitDateLong = jReader.getLongValue(jPath, jsonData);
+			if( splitDateLong != null ) {
+				Date splitDate = new Date(splitDateLong);
+				SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+				String _splitDate = formatter.format(splitDate);
+				System.out.println("value = " + _splitDate);
+			}
 			
-			jPath = "quoteSummary[6]/result[Array][0]";
-			JSONObject jsonValue = getJSONObjectValue(jPath, jsonData);
-			System.out.println("jPath = " + jPath);
-			System.out.println("value = " + jsonValue.toString(4));
-			
-			jPath = "quoteSummary[6]/result[Array]";
-			JSONArray jsonArrValue = getJSONArrayValue(jPath, jsonData);
-			System.out.println("jPath = " + jPath);
-			System.out.println("value = " + jsonArrValue.toString(4));
+//			jPath = "quoteSummary[6]/result[Array][0]";
+//			JSONObject jsonValue = jReader.getJSONObjectValue(jPath, jsonData);
+//			System.out.println("jPath = " + jPath);
+//			System.out.println("value = " + jsonValue.toString(4));
+//			
+//			jPath = "quoteSummary[6]/result[Array]";
+//			JSONArray jsonArrValue = jReader.getJSONArrayValue(jPath, jsonData);
+//			System.out.println("jPath = " + jPath);
+//			System.out.println("value = " + jsonArrValue.toString(4));
 			
 		} catch (JSONException e) {
 			e.printStackTrace();
@@ -333,41 +395,43 @@ public class JSONDataReader {
 	}
 
 	private static void runTests2() {
+		JSONDataReader jDataReader = JSONDataReader.getInstance();
+
 		String jsonDataUrl = "http://www.fanffair.com/json?fetchsize=10&before=1490799314000&type=HOME_PAGE&noCache=1490801422724";
 		try {
-			JSONObject jsonData = getContentFromHttpUri(jsonDataUrl);
+			JSONObject jsonData = jDataReader.getContentFromHttpUri(jsonDataUrl);
 			String jPath = "/fbids[String]";
-			String value = getStringValue(jPath, jsonData);
+			String value = jDataReader.getStringValue(jPath, jsonData);
 			System.out.println("jPath = " + jPath);
 			System.out.println("value = " + value);
 			
 			jPath = "/data[Array][1]/id[String]";
-			value = getStringValue(jPath, jsonData);
+			value = jDataReader.getStringValue(jPath, jsonData);
 			System.out.println("jPath = " + jPath);
 			System.out.println("value = " + value);
 			
 			jPath = "/data[Array][1]/likes[Object]/summary[Object]/total_count[String]";
 			System.out.println("jPath = " + jPath);
-			value = getStringValue(jPath, jsonData);
+			value = jDataReader.getStringValue(jPath, jsonData);
 			System.out.println("value = " + value);
 			
 			jPath = "/data[Array][1]/likes[Object]";
 			System.out.println("jPath = " + jPath);
-			JSONObject jsonValue = getJSONObjectValue(jPath, jsonData);
+			JSONObject jsonValue = jDataReader.getJSONObjectValue(jPath, jsonData);
 			//System.out.println("value = " + jsonValue.toString(4));
 			
 			jPath = "/data[Array][id=131272076894593_1420960724592382]/likes[Object]/summary[Object]/total_count";
 			System.out.println("jPath = " + jPath);
-			value = getStringValue(jPath, jsonData);
+			value = jDataReader.getStringValue(jPath, jsonData);
 			System.out.println("value = " + value);
 			
 			jPath = "/data[Array]";
-			JSONArray jArrValue = getJSONArrayValue(jPath, jsonData);
+			JSONArray jArrValue = jDataReader.getJSONArrayValue(jPath, jsonData);
 			System.out.println("jPath = " + jPath);
 			//System.out.println("value = " + jArrValue.toString(4));
 			
 			jPath = "/data[Array][3]";
-			JSONObject jObjValue = getJSONObjectValue(jPath, jsonData);
+			JSONObject jObjValue = jDataReader.getJSONObjectValue(jPath, jsonData);
 			System.out.println("jPath = " + jPath);
 			//System.out.println("value = " + jObjValue.toString(4));
 			
