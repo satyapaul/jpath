@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>jpath javascript api demo</title>
+        
+        <script
+          src="https://code.jquery.com/jquery-3.2.1.min.js"
+          integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+          crossorigin="anonymous"></script>
+        
+        <!-- Latest compiled and minified CSS -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+        <!-- Optional theme -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+
+        <!-- Latest compiled and minified JavaScript -->
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>        
+
+        
+        <script src="jpath.js"></script>
+    </head>
+    
+    <body>
+        <div class="container-fluid">
+
+            <form class="form-horizontal">
+            <fieldset>
+
+            <!-- Form Name -->
+            <legend>JSON Data Explorer</legend>
+
+            <!-- Text input-->
+            <div class="form-group">
+              <label class="col-md-4 control-label" for="textinput">JSON Data Source Url</label>  
+              <div class="col-md-6">
+                <div class="input-group">
+                  <input id="json-datasource-url" name="textinput" type="text" placeholder="placeholder" class="form-control input-md">
+                    <span class="input-group-btn">
+                        <button class="btn btn-default" onclick="javascript:getJSONData();" type="button">Go!</button>
+                    </span>
+                </div>        
+                <span class="help-block">Provide the url of your JSON Data source</span>  
+              </div>
+            </div>
+
+            <!-- Textarea -->
+            <div class="form-group">
+              <label class="col-md-4 control-label" for="textarea">JSON Data Content</label>
+              <div class="col-md-6">                     
+                <textarea class="form-control" id="jsondata-textarea" rows="10" name="textarea"></textarea>
+                <button type="button" id="validate-button" data-loading-text="Loading..." class="btn btn-primary" autocomplete="off">
+                    Validate
+                </button>  
+                <span class="help-block">Load JSON Data from url above or Copy the JSON Data and Vaidate</span>  
+              </div>
+            </div>
+
+            <!-- Text input-->
+            <div class="form-group">
+              <label class="col-md-4 control-label" for="textinput">JPath Expression</label>  
+              <div class="col-md-6">
+                <div class="input-group">      
+                    <input id="jpath-expression" name="textinput" type="text" placeholder="placeholder" class="form-control input-md">
+                    <span class="input-group-btn">
+                        <button id="validate-button" class="btn btn-default" onclick="javascript:executeJPath();" type="button">Go!</button>
+                    </span>                  
+                </div>
+              <span class="help-block">Provide the path expression for the Data you want to explore</span>  
+              </div>
+            </div>
+
+            <!-- Textarea -->
+            <div class="form-group">
+              <label class="col-md-4 control-label"  rows="15" for="textarea">Explored Values</label>
+              <div class="col-md-6">                     
+                <textarea class="form-control" id="jpath-value" rows="5" name="textarea"></textarea>
+              </div>
+            </div>
+
+            </fieldset>
+            </form>
+
+
+        </div>
+        
+    </body>
+    
+    <script>
+        var jpath = new jPath();
+        
+        function getJSONData() {
+            var _url = $('#json-datasource-url').val();//"http://www.fanffair.com/json?fetchsize=10&before=1490799314000&type=HOME_PAGE&noCache=1490801422724";
+            console.log('JSON Data Source Url = ' + _url);
+            
+            jpath.loadJSONDataFromUrl(_url, function() {
+                $('#jsondata-textarea').text(JSON.stringify( JSON.parse(jpath.getJSONData()), null, 4) );
+            });
+            
+        } 
+
+        function executeJPath() {
+            var jpathVal = $('#jpath-expression').val();
+            console.log('jpath value = ' + jpathVal);
+            var val = jpath.getJPathValue(jpathVal);
+            var existingValue = $('#jpath-value').val();
+            $('#jpath-value').text(JSON.stringify(val) );
+        }
+
+        $('#validate-button').on('click', function () {
+            var _jsonData = $('#jsondata-textarea').val();
+            $('#jsondata-textarea').val(JSON.stringify(JSON.parse(_jsonData), null, 4) );
+            jpath.setJSONData(_jsonData);
+
+        })
+        
+        function vaidateAndLoad() {
+            var jsonData = $('#jsondata-textarea').val();
+            console.log('jpath value = ' + jpathVal);
+            var val = jpath.getJPathValue(jpathVal);
+            var existingValue = $('#jpath-value').val();
+            $('#jpath-value').text(JSON.stringify(val) );
+        }
+    </script>
+</html>
