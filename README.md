@@ -1,7 +1,10 @@
 # jpath
 
-It's a quick solution to read JSON Data. It works in a similar manner xpath works for xml data. Take a look at this single class library called 'jpath' that emulates xpath for JSON data.  written in java
+It's a quick solution to read JSON Data. It works in a similar manner xpath works for xml data. Take a look at this single class library called 'jpath' that emulates xpath for JSON data.  The library is available in both Java and Javascript. Here is the demo url - http://www.jpath.org.s3-website.us-east-2.amazonaws.com/ Demo uses javascript library for demonstration purpose.
 
+# Live Demo
+
+Check out - http://www.jpath.org.s3-website.us-east-2.amazonaws.com/
 
 # Third Party Library Dependencies 
 
