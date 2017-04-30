@@ -66,7 +66,7 @@
                         <button id="validate-button" class="btn btn-default" onclick="javascript:executeJPath();" type="button">Go!</button>
                     </span>                  
                 </div>
-              <span class="help-block">Provide the path expression for the Data you want to explore</span>  
+              <span class="help-block">Provide the <i><b>jpath</b></i> expression for the Data you want to explore</span>  
               </div>
             </div>
 
@@ -90,21 +90,16 @@
         var jpath = new jPath();
         
         function getJSONData() {
-            var _url = $('#json-datasource-url').val();//"http://www.fanffair.com/json?fetchsize=10&before=1490799314000&type=HOME_PAGE&noCache=1490801422724";
-            console.log('JSON Data Source Url = ' + _url);
-            
+            var _url = $('#json-datasource-url').val();
             jpath.loadJSONDataFromUrl(_url, function() {
                 $('#jsondata-textarea').text(JSON.stringify( JSON.parse(jpath.getJSONData()), null, 4) );
             });
-            
         } 
 
         function executeJPath() {
             var jpathVal = $('#jpath-expression').val();
-            console.log('jpath value = ' + jpathVal);
-            var val = jpath.getJPathValue(jpathVal);
-            var existingValue = $('#jpath-value').val();
-            $('#jpath-value').text(JSON.stringify(val) );
+            var val = jpath.getJPathValue(jpathVal);     
+            $('#jpath-value').text( val );
         }
 
         $('#validate-button').on('click', function () {
@@ -116,7 +111,7 @@
         
         function vaidateAndLoad() {
             var jsonData = $('#jsondata-textarea').val();
-            console.log('jpath value = ' + jpathVal);
+            //console.log('jpath value = ' + jpathVal);
             var val = jpath.getJPathValue(jpathVal);
             var existingValue = $('#jpath-value').val();
             $('#jpath-value').text(JSON.stringify(val) );
