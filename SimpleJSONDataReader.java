@@ -7,12 +7,15 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
-import com.google.gson.stream.JsonReader;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
@@ -59,8 +62,8 @@ import com.sun.jersey.api.json.JSONConfiguration;
 public class SimpleJSONDataReader {
 
 	/*
-	 * SUPPRESS_JSON_EXCEPTION: The variable is introduced 
-   * to deal with two different situations - 
+	 * The variable is introduced to deal with two different 
+	 * situations - 
 	 * 
 	 * design time : when a user is exploring the jpath
 	 * for a particular JSON Content. During that time the 
@@ -90,6 +93,13 @@ public class SimpleJSONDataReader {
 		return new SimpleJSONDataReader();
 	}
 
+	/**
+	 * This method can be used when the jpath translates to single value.
+	 * @param path
+	 * @param jsonData
+	 * @return
+	 * @throws JSONException
+	 */
 	public String getValue(String path, JSONObject jsonData) throws JSONException {
 		path = path.startsWith("/") ? path.substring(1, path.length()) : path;
 		String parts[] = path.split("/");
@@ -97,6 +107,129 @@ public class SimpleJSONDataReader {
 		return value.toString();
 	}
 	
+	/**
+	 * This method can be used when the jpath translates to multiple values.
+	 * @param jPath
+	 * @param jsonData
+	 * @return
+	 * @throws JSONException
+	 */
+	public String getValueList(String jPath, JSONObject jsonData) throws JSONException {
+		Map<StringBuilder, Object> jpathList = getJPathValueMap(jPath, jsonData);
+		return jpathList.values().toString();
+	}
+	
+	
+	/**
+	 * The method is useful when one 'jpath' expression translates to multiple values. This returns
+	 * the map of jpath expressions along with values.
+	 * @param jpath
+	 * @param jsonData
+	 * @return
+	 * @throws JSONException
+	 */
+	public Map<StringBuilder, Object> getJPathValueMap(String jpath, Object jsonData) throws JSONException {
+		JSONObject jsonDataObj = (JSONObject)jsonData;
+		jpath = jpath.startsWith("/") ? jpath.substring(1, jpath.length()) : jpath;
+		String parts[] = jpath.split("/");
+		Map<StringBuilder, Object> jPathValueMap = new LinkedHashMap<StringBuilder, Object>();
+		StringBuilder generatedJPath = new StringBuilder("/");
+		jPathValueMap.put(generatedJPath, jsonDataObj);
+		int counter = 0;	
+
+		for(String part : parts) {
+			StringBuilder newJPath = new StringBuilder();
+			String partName = part.indexOf("[") != -1 ? part.substring(0, part.indexOf("[")) : part;
+			String dataType = getDataTypeSimple( part, parts.length - counter);
+			Map<StringBuilder, Object> _jPathValueMap = new LinkedHashMap<StringBuilder, Object>();
+			if("String".equals(dataType)) {
+				//last part in the list of parts
+				Iterator<StringBuilder> iter = jPathValueMap.keySet().iterator();
+				StringBuilder _jpath = null;
+				while(iter.hasNext()) {
+					_jpath = iter.next();
+					JSONObject _jsonDataObj = (JSONObject)jPathValueMap.get(_jpath);
+					_jPathValueMap.put(new StringBuilder(_jpath).append(partName), _jsonDataObj.getString(partName));
+				}
+			} else if( "Object".equals(dataType) ) {
+				Iterator<StringBuilder> iter = jPathValueMap.keySet().iterator();
+				StringBuilder _jpath = null;
+				while(iter.hasNext()) {
+					_jpath = iter.next();
+					JSONObject _jsonDataObj = (JSONObject)jPathValueMap.get(_jpath);
+					_jPathValueMap.put(new StringBuilder(_jpath).append(partName).append("/"), _jsonDataObj.getJSONObject(partName));
+				}
+				
+			} else if( "Array".equals(dataType) ) {
+				String arrValuePart = part.substring(part.indexOf('[')+1, part.indexOf(']'));
+				Iterator<StringBuilder> _iter = jPathValueMap.keySet().iterator();
+				
+				while(_iter.hasNext()) {
+					StringBuilder _jpath = _iter.next();
+					JSONObject _jsonDataObj = (JSONObject)jPathValueMap.get(_jpath);
+					JSONArray _dataArray = _jsonDataObj.getJSONArray(partName);
+					int _arraySize = _dataArray.length();
+					if( arrValuePart.length() == 0 ) {
+						while( --_arraySize >= 0) {
+							_jPathValueMap.put(new StringBuilder(_jpath).append(partName+"["+_arraySize+"]"+"/"), _dataArray.getJSONObject(_arraySize));
+						}
+					} else if( arrValuePart.indexOf("-") != -1 ) {
+						//A Range of numeric values represent Array location range
+	                    String[] range = arrValuePart.split("-");
+	                    int startVal = Integer.parseInt(range[0]);
+	                    int endVal = Integer.parseInt(range[1]);
+	                    for(; startVal <= endVal; startVal++) {
+	                    	_jPathValueMap.put(new StringBuilder(_jpath).append(partName+"["+startVal+"]").append("/"), _dataArray.getJSONObject(startVal) );
+	                    }
+					} else if( arrValuePart.indexOf("=") != -1) {
+						//String comparison
+	            		int location = -1 ;
+	        			String name = arrValuePart.split("=")[0];
+	        			String value = arrValuePart.split("=")[1];
+	        			JSONArray arr = _jsonDataObj.getJSONArray(partName);
+	        			for(int i = 0 ; i < arr.length(); i++) {
+	        				String val = arr.getJSONObject(i).getString(name);
+	        				if ( value.equals( val ) ) {
+	        					location = i;
+	        					_jPathValueMap.put(new StringBuilder(_jpath).append(partName+"["+location+"]").append("/"), _dataArray.getJSONObject(location) );
+	        				} else if( StringUtils.isNumeric(value) &&  StringUtils.isNumeric( val) ) {
+	        					double _value = Double.parseDouble(value);
+	        					double _val = Double.parseDouble(val);
+	        					
+	        					if( _value == _val) {
+	        						location = i;
+	        						_jPathValueMap.put(new StringBuilder(_jpath).append(partName+"["+location+"]").append("/"), _dataArray.getJSONObject(location) );
+	        					}
+	        				}
+	        			}	        			
+	        			
+					} else if( arrValuePart.indexOf("==") != -1) {
+	                	System.err.println("Arithmatic Comparison. Not Yet Implemented");
+	                } else if( arrValuePart.indexOf(">") != -1) {
+	                	System.err.println("Arithmatic Comparison. Not Yet Implemented");
+	                } else if( arrValuePart.indexOf("<") != -1) {
+	                	System.err.println("Arithmatic Comparison. Not Yet Implemented");
+	                } else if( arrValuePart.indexOf(">=") != -1) {
+	                	System.err.println("Arithmatic Comparison. Not Yet Implemented");
+	                } else if( arrValuePart.indexOf("<=") != -1) {
+	                	System.err.println("Arithmatic Comparison. Not Yet Implemented");
+	                } else if( arrValuePart.indexOf("!=") != -1) {
+	                	System.err.println("Arithmatic Comparison. Not Yet Implemented");
+	                } else if( arrValuePart.indexOf(",") != -1) {
+	                	System.err.println("For list of comma separated Indexes. Not Yet Implemented");
+	                } else if ( StringUtils.isNumeric(arrValuePart) ) {
+	                	//Numeric value represents a specific Array location
+	                	int arrValue = Integer.parseInt(arrValuePart);	
+	    				_jPathValueMap.put(new StringBuilder(_jpath).append(part).append("/"), _dataArray.getJSONObject(arrValue) );
+	                }
+				}
+			}
+			jPathValueMap = _jPathValueMap;
+			counter++;
+		}
+		return jPathValueMap;
+	}
+		
 	
 	/**
 	 * This recursive method is core method that traverses the JSON Data for return the requested jpath data. 
@@ -240,21 +373,70 @@ public class SimpleJSONDataReader {
 	 */
 	public static void main(String[] args) {
 		SimpleJSONDataReader reader = SimpleJSONDataReader.getInstance();
-		reader.runTests2();
-		//runTests3();
+		//reader.runTests2();
+		runTests4();
 	}
 	
+	
+	private static void runTests5() {
+		SimpleJSONDataReader jDataReader = SimpleJSONDataReader.getInstance();
 
+		String jsonDataUrl = "http://www.fanffair.com/json?fetchsize=10&before=1490799314000&type=HOME_PAGE&noCache=1490801422724";
+		try {
+			JSONObject jsonData = jDataReader.getContentFromHttpUri(jsonDataUrl);
+			String jPath = "/data[]/likes/summary/total_count";
+			//Map<StringBuilder, Object> jpathList = jDataReader.getJPathValueMap(jPath, jsonData);
+
+			long t0 = System.currentTimeMillis();
+
+			//System.out.println(jDataReader.getJPathValueMap(jPath, jsonData));
+			System.out.println(jDataReader.getValueList(jPath, jsonData));
+			
+			long t1 = System.currentTimeMillis();
+			
+			System.out.println("t1 - t0 = " + (t1 - t0));
+
+			
+			
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+
+	}
+	
+	private static void runTests4() {
+		SimpleJSONDataReader jReader = SimpleJSONDataReader.getInstance();
+		//String sourceLocation = "/Users/johndoe/Documents/workspace/StockPeeker/20170325/yahoo/stock-quotes/ABB.NS.json";
+		String jsonDataUrl = "https://query2.finance.yahoo.com/v10/finance/quoteSummary/ABB.NS?modules=assetProfile,financialData,defaultKeyStatistics,incomeStatementHistory,cashflowStatementHistory,balanceSheetHistory";
+		try {
+			//JSONObject jsonData = jReader.getFileContent(sourceLocation);
+			JSONObject jsonData = jReader.getContentFromHttpUri(jsonDataUrl);
+			String jPath = "/quoteSummary/result[]/defaultKeyStatistics/sharesOutstanding/fmt";
+			long t0 = System.currentTimeMillis();
+			
+			Map<StringBuilder, Object> jpathValueMap = jReader.getJPathValueMap(jPath, jsonData);
+
+			long t1 = System.currentTimeMillis();
+			
+			System.out.println("t1 - t0 = " + (t1 - t0));
+			
+			System.out.println(jpathValueMap);
+			
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+
+	}
 
 	private static void runTests3() {
 		SimpleJSONDataReader jReader = SimpleJSONDataReader.getInstance();
-		String sourceLocation = "/Users/satyajitpaul/Documents/workspace/StockPeeker/20170325/yahoo/stock-quotes/ABB.NS.json";
+		//String sourceLocation = "/Users/johndoe/Documents/workspace/StockPeeker/20170325/yahoo/stock-quotes/ABB.NS.json";
 		String jsonDataUrl = "https://query2.finance.yahoo.com/v10/finance/quoteSummary/ABB.NS?modules=assetProfile,financialData,defaultKeyStatistics,incomeStatementHistory,cashflowStatementHistory,balanceSheetHistory";
 		try {
-			JSONObject jsonData = jReader.getFileContent(sourceLocation);
-			//JSONObject jsonData = getContentFromHttpUri(jsonDataUrl);
+			//JSONObject jsonData = jReader.getFileContent(sourceLocation);
+			JSONObject jsonData = jReader.getContentFromHttpUri(jsonDataUrl);
 			
-			String jPath = "/quoteSummary/result[0]/defaultKeyStatistics/enterpriseValue/fmt";
+			String jPath = "/quoteSummary/result[0]/defaultKeyStatistics/sharesOutstanding/fmt";
 			String value = jReader.getValue(jPath, jsonData);
 			System.out.println("jPath = " + jPath);
 			System.out.println("value = " + value);
